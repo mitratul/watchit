@@ -13,13 +13,6 @@ public interface DirectoryWatcher {
 	public void setDirectory(String dirPath) throws IOException;
 	
 	/**
-	 * Set if the recursive child directory needs to be watched.
-	 * Default value depends on the implementation.
-	 * @param recursive
-	 */
-	public void setRecursive(boolean recursive);
-	
-	/**
 	 * Checks if the directory to watch is already set or not.
 	 * @return
 	 */
@@ -31,10 +24,11 @@ public interface DirectoryWatcher {
 	 * <br>
 	 * Throws IOException if the watch service registration fails 
 	 * for any directory under watch.
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public void processEvents() throws IOException;
+	public void start() throws Exception;
 	
+	public void stop() throws Exception;
 	/**
 	 * Registers the handler with the watcher.
 	 * @param handler

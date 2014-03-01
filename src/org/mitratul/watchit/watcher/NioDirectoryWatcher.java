@@ -38,15 +38,11 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
     private Path dirToWatch;
     private List<FileChangeHandlerIf> handlerList;
     
-    private boolean recursive;
-    private boolean trace = false;
-    
 
     public NioDirectoryWatcher()  throws IOException {
         this.watcher = FileSystems.getDefault().newWatchService();
         this.keys = new HashMap<WatchKey, Path>();
         this.handlerList = new ArrayList<FileChangeHandlerIf>();
-        this.recursive = true;
     }
 
 	@Override
@@ -58,11 +54,6 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
 		dirToWatch = Paths.get(dirPath);
 	}
 
-	@Override
-	public void setRecursive(boolean recursive) {
-		this.recursive = recursive;
-	}
-	
 	@Override
 	public boolean isDirectorySet() {
 		return dirToWatch != null;
@@ -77,17 +68,8 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
      * Register the given directory with the WatchService
      */
     private void register(Path dir) throws IOException {
-        WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-        if (trace) {
-            Path prev = keys.get(key);
-            if (prev == null) {
-                System.out.format("register: %s\n", dir);
-            } else {
-                if (!dir.equals(prev)) {
-                    System.out.format("update: %s -> %s\n", prev, dir);
-                }
-            }
-        }
+        WatchKey key = dir.register(watcher, 
+        		ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
         keys.put(key, dir);
     }
 
@@ -110,12 +92,8 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
      * Process all events for keys queued to the watcher
      * @throws IOException 
      */
-    public void processEvents() throws IOException {
-    	if (recursive) {
-            registerAll(dirToWatch);
-        } else {
-            register(dirToWatch);
-        }
+    public void start() throws IOException {
+    	registerAll(dirToWatch);
 
         for (;;) {
 
@@ -150,9 +128,8 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
                 // print out event
                 notifyAllHandlers(event.kind().name(), child.toFile().toString());
 
-                // if directory is created, and watching recursively, then
-                // register it and its sub-directories
-                if (recursive && (kind == ENTRY_CREATE)) {
+                // if directory is created register it and its sub-directories
+                if (kind == ENTRY_CREATE) {
                     try {
                         if (Files.isDirectory(child, NOFOLLOW_LINKS)) {
                             registerAll(child);
@@ -176,31 +153,15 @@ public class NioDirectoryWatcher implements DirectoryWatcher {
         }
     }
 
+    public void stop() throws IOException {
+    	watcher.close();
+    }
+    
 	private void notifyAllHandlers(String type, String name) {
 		long time = System.currentTimeMillis();
 		for (FileChangeHandlerIf handler : handlerList) {
-			handler.onChange(new FileChange(name, mapType(type), time));
+			handler.onChange(new FileChange(name, ChangeType.valueOf(type), time));
 		}
-	}
-
-	private ChangeType mapType(String type) {
-		ChangeType changeType = null;
-		switch (type) {
-		case "ENTRY_CREATE":
-			changeType = ChangeType.ENTRY_CREATE;
-			break;
-		case "ENTRY_MODIFY":
-			changeType = ChangeType.ENTRY_MODIFY;
-			break;
-		case "ENTRY_DELETE":
-			changeType = ChangeType.ENTRY_DELETE;
-			break;
-		default:
-			// already checked, cannot occur.
-			break;
-		}
-		
-		return changeType;
 	}
 
 	@Override

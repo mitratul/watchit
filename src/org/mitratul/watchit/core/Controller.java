@@ -1,13 +1,16 @@
 package org.mitratul.watchit.core;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.mitratul.menu.core.CliMenu;
-import org.mitratul.menu.impl.HistoryMenu;
-import org.mitratul.watchit.watcher.NioDirectoryWatcher;
+import org.mitratul.watchit.menu.core.ActionOutcome;
+import org.mitratul.watchit.menu.core.CliMenu;
+import org.mitratul.watchit.menu.core.TextIO;
+import org.mitratul.watchit.menu.impl.HideFilterMenu;
+import org.mitratul.watchit.menu.impl.HistoryMenu;
+import org.mitratul.watchit.menu.impl.ShowFilterMenu;
+import org.mitratul.watchit.watcher.CioDirectoryWatcher;
 
 public class Controller {
 
@@ -17,7 +20,7 @@ public class Controller {
 	private List<FileChange> mainHistory;
 	private CliMenu mainMenu;
 
-	private Controller() throws IOException {
+	private Controller() {
 		initWatcher();
 		initMenu();
 		
@@ -26,7 +29,7 @@ public class Controller {
 
 	}
 
-	public static Controller getInstance() throws IOException {
+	public static Controller getInstance() {
 		if (instance == null) {
 			synchronized (Controller.class) {
 				if (instance == null) {
@@ -45,12 +48,12 @@ public class Controller {
 		return Collections.unmodifiableList(mainHistory);
 	}
 	
-	public CliMenu getMainMenu() {
+	public CliMenu getUI() {
 		return mainMenu;
 	}
 	
-	private void initWatcher() throws IOException {
-		watcher = new NioDirectoryWatcher();
+	private void initWatcher() {
+		watcher = new CioDirectoryWatcher();
 		//* add the main history listener
 		watcher.addChangeHandler(new FileChangeHandlerIf() {
 			@Override public void onChange(FileChange fileChange) {
@@ -61,17 +64,20 @@ public class Controller {
 
 	private void initMenu() {
 		mainMenu = new CliMenu() {
-			@Override public String performAction(String input) {
-				return "";
+			@Override protected List<TextIO> getOptionList() {
+				return new ArrayList<TextIO>(0);
 			}
-			@Override public String getName() {
-				return "Main";
+			@Override protected ActionOutcome performAction(String filterOption) {
+				return new ActionOutcome("");
 			}
-			@Override protected List<String> getOptionList() {
-				return new ArrayList<String>(0);
+			@Override protected TextIO getTextIO() {
+				return new TextIO("Main");
 			}
+			
 		};
-		
+		// * read and load from properties file
 		mainMenu.addSubMenu(new HistoryMenu());
+		mainMenu.addSubMenu(new ShowFilterMenu());
+		mainMenu.addSubMenu(new HideFilterMenu());
 	}
 }

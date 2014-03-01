@@ -1,0 +1,60 @@
+<project name="Watchit" default="dist" basedir=".">
+	<description>
+		build watchit project
+	</description>
+	<!-- set global properties for this build -->
+	<property name="project.name" value="Watchit"/>
+	<property name="main.class" value="org.mitratul.watchit.Main"/>
+	<property name="src" location="src"/>
+	<property name="lib" location="lib"/>
+	<property name="lib.ext" location="ext"/>
+	<property name="build" location="build"/>
+	<property name="dist" location="dist"/>
+
+	<path id="project.class.path">
+		<fileset dir="${lib}"/>
+		<pathelement location="lib/" />
+		<pathelement path="${java.class.path}/" />
+	</path>
+
+	<target name="init" depends="clean">
+		<!-- Create the time stamp -->
+		<tstamp/>
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${build}"/>
+		<!-- Create the distribution directory -->
+		<mkdir dir="${dist}"/>
+	</target>
+
+	<target name="compile" depends="init"
+		description="compile the source " >
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac srcdir="${src}" destdir="${build}"
+			source="1.5" target="1.5">
+			<classpath>
+				<fileset dir="${lib}">
+					<include name="**/*.jar" />
+				</fileset>
+				<fileset dir="${lib.ext}">
+					<include name="**/*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile" description="generate the distribution">
+		<!-- Put everything in ${build} into the ${project.name}-${DSTAMP}.jar file -->
+		<jar jarfile="${dist}/${project.name}-${DSTAMP}.jar" basedir="${build}">
+			<manifest>
+				<attribute name="Main-Class" value="${main.class}" />
+			</manifest>
+			<zipgroupfileset dir="${lib}" includes="**/*.jar" />
+		</jar>
+	</target>
+
+	<target name="clean" description="clean up">
+		<!-- Delete the ${build} and ${dist} directory trees -->
+		<delete dir="${build}"/>
+		<delete dir="${dist}"/>
+	</target>
+</project>

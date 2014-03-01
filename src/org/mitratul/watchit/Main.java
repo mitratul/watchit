@@ -7,54 +7,62 @@ import org.mitratul.watchit.core.Controller;
 import org.mitratul.watchit.core.DirectoryWatcher;
 
 public class Main {
-	
-	public static final String OPTION_EXIT = "Exit"; 
-	
-	private static final String OPTION_NON_RECURSIVE = "nr";
 
-    public static void usage() {
-        System.err.println("usage: java org.mitratul.watchit.Main [-nr] <dir to watch>");
-        System.err.println("  options: -nr: (optional) non-recursive watch (be default recursive)");
-        System.exit(-1);
-    }
+	public static final String OPTION_EXIT = "Exit";
 
-    public static void main(String[] args) throws IOException {
-        //* parse arguments
-        if (args.length == 0 || args.length > 2)
-            usage();
-        boolean recursive = true;
-        int dirArg = 0;
-        if (OPTION_NON_RECURSIVE.equals(args[0])) {
-            if (args.length < 2)
-                usage();
-            recursive = false;
-            dirArg++;
-        }
-        
-        //* initialize the controller
-        Controller controller = Controller.getInstance();
+	public static void usage() {
+		System.err
+				.println("usage: java org.mitratul.watchit.Main <dir to watch>");
+		System.exit(-1);
+	}
 
-        //* register directory and process its events
-        final DirectoryWatcher dw = controller.getWatcher();
-        dw.setDirectory(args[dirArg]);
-        dw.setRecursive(recursive);
-        
-        Thread watcherThread = new Thread(new Runnable() {
-			@Override public void run() {
-				try{
-					dw.processEvents();
-				} catch (IOException ex) {
+	public static void main(String[] args) {
+		// * parse arguments
+		if (args.length != 1) {
+			usage();
+		}
+
+		// * initialize the controller
+		Controller controller = Controller.getInstance();
+
+		// * register directory and process its events
+		final DirectoryWatcher dw = controller.getWatcher();
+		try {
+			dw.setDirectory(args[0]);
+			System.out.println("Starting watcher on " + args[0]);
+		} catch (IOException e) {
+			System.err.println("Ouch! Failed to start watcher on " + args[0]);
+		}
+
+		// * start the watcher in background thread.
+		Thread watcherThread = new Thread() {
+			@Override
+			public void run() {
+				try {
+					dw.start();
+				} catch (Exception ex) {
 					ex.printStackTrace();
 				}
 			}
-		});
-        watcherThread.start();
-        System.out.println("Started watcher at: " + new Date());
-        
-        controller.getMainMenu().prompt();
 
-        System.out.println("Stopping watcher at: " + new Date());
+			@Override
+			public void interrupt() {
+				try {
+					dw.stop();
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+				super.interrupt();
+			}
+		};
+		watcherThread.start();
+		System.out.println("Started watcher at: " + new Date());
+
+		// * render the main menu
+		controller.getUI().render("");
+
+		System.out.println("Stopping watcher at: " + new Date());
 		watcherThread.interrupt();
-        
-    }
+
+	}
 }
